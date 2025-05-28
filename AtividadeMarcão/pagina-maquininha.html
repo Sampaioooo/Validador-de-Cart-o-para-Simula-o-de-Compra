@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Validação de Usuário - Maquininha</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #131313;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      color: #eee;
+    }
+    
+    .card-machine {
+      background-color: #232323;
+      border-radius: 10px;
+      box-shadow: 0 0 20px rgba(155, 220, 40, 0.7);
+      width: 350px;
+      padding: 20px;
+      text-align: center;
+      color: #eee;
+    }
+    
+    .display {
+      background-color: #1e1e1e;
+      padding: 15px;
+      margin-bottom: 20px;
+      border-radius: 5px;
+      min-height: 60px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      color: #9bdc28;
+      font-weight: bold;
+    }
+    
+    .message {
+      margin-bottom: 10px;
+      font-weight: bold;
+    }
+    
+    .password-display {
+      letter-spacing: 3px;
+      font-size: 1.2em;
+      color: #4caf50;
+    }
+    
+    .keypad {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+    
+    button {
+      padding: 15px;
+      font-size: 1.2em;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+      color: #111;
+    }
+    
+    .number-btn {
+      background-color: #9bdc28;
+    }
+    
+    .number-btn:hover {
+      background-color: #78b208;
+      color: #fff;
+    }
+    
+    .action-btn {
+      background-color: #4caf50;
+      color: white;
+    }
+    
+    .cancel-btn {
+      background-color: #f44336;
+      color: white;
+    }
+    
+    .action-btn:hover {
+      background-color: #45a049;
+    }
+    
+    .cancel-btn:hover {
+      background-color: #d32f2f;
+    }
+    
+    .card-slot {
+      height: 5px;
+      background-color: #333;
+      margin-bottom: 20px;
+      border-radius: 0 0 5px 5px;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .card-slot::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: #666;
+      transform: translateY(-100%);
+      transition: transform 0.3s;
+    }
+    
+    .card-inserted .card-slot::after {
+      transform: translateY(0);
+    }
+    
+    .blocked {
+      pointer-events: none;
+      opacity: 0.6;
+    }
+  </style>
+</head>
+<body>
+  <div class="card-machine">
+    <div class="card-slot"></div>
+    <div class="display">
+      <div class="message">Por favor, insira seu cartão</div>
+      <div class="password-display"></div>
+    </div>
+    
+    <div class="keypad">
+      <button class="number-btn" data-number="1">1</button>
+      <button class="number-btn" data-number="2">2</button>
+      <button class="number-btn" data-number="3">3</button>
+      <button class="number-btn" data-number="4">4</button>
+      <button class="number-btn" data-number="5">5</button>
+      <button class="number-btn" data-number="6">6</button>
+      <button class="number-btn" data-number="7">7</button>
+      <button class="number-btn" data-number="8">8</button>
+      <button class="number-btn" data-number="9">9</button>
+      <button class="cancel-btn">Cancelar</button>
+      <button class="number-btn" data-number="0">0</button>
+      <button class="action-btn">Entrar</button>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const machine = document.querySelector('.card-machine');
+      const cardSlot = document.querySelector('.card-slot');
+      const messageEl = document.querySelector('.message');
+      const passwordDisplay = document.querySelector('.password-display');
+      const numberBtns = document.querySelectorAll('.number-btn');
+      const enterBtn = document.querySelector('.action-btn');
+      const cancelBtn = document.querySelector('.cancel-btn');
+      
+      let cardInserted = false;
+      let password = '';
+      let attempts = 0;
+      let blocked = false;
+      
+      cardSlot.addEventListener('click', function() {
+        if (!cardInserted && !blocked) {
+          machine.classList.add('card-inserted');
+          cardInserted = true;
+          messageEl.textContent = 'Por favor, digite sua senha';
+          console.log('Cartão inserido');
+        }
+      });
+      
+      numberBtns.forEach(btn => {
+        btn.addEventListener('click', function() {
+          if (cardInserted && !blocked) {
+            password += this.getAttribute('data-number');
+            updatePasswordDisplay();
+          }
+        });
+      });
+      
+      enterBtn.addEventListener('click', function() {
+        if (cardInserted && !blocked) {
+          validatePassword();
+        }
+      });
+      
+      cancelBtn.addEventListener('click', function() {
+        resetTransaction();
+        messageEl.textContent = 'Operação cancelada. Por favor, insira seu cartão.';
+      });
+      
+      function updatePasswordDisplay() {
+        passwordDisplay.textContent = '*'.repeat(password.length);
+      }
+      
+      function validatePassword() {
+        if (password === '1234') {
+          messageEl.textContent = 'Acesso autorizado. Retire seu cartão.';
+          setTimeout(() => {
+            resetTransaction();
+            messageEl.textContent = 'Transação concluída com sucesso!';
+            setTimeout(() => {
+              messageEl.textContent = 'Por favor, insira seu cartão';
+            }, 2000);
+          }, 1500);
+        } else {
+          attempts++;
+          if (attempts >= 3) {
+            blockMachine();
+            messageEl.textContent = 'Senha inválida 3 vezes. Cartão retido. Tente novamente em 2 minutos.';
+          } else {
+            messageEl.textContent = `Senha inválida. Tentativa ${attempts} de 3. Retire seu cartão.`;
+            setTimeout(() => {
+              resetTransaction(false);
+              messageEl.textContent = 'Por favor, insira seu cartão novamente';
+            }, 1500);
+          }
+        }
+      }
+      
+      function resetTransaction(resetAttempts = true) {
+        machine.classList.remove('card-inserted');
+        cardInserted = false;
+        password = '';
+        passwordDisplay.textContent = '';
+        if (resetAttempts) {
+          attempts = 0;
+        }
+      }
+      
+      function blockMachine() {
+        blocked = true;
+        machine.classList.add('blocked');
+        resetTransaction();
+        setTimeout(() => {
+          blocked = false;
+          machine.classList.remove('blocked');
+          messageEl.textContent = 'Por favor, insira seu cartão';
+        }, 120000); // 2 minutos
+      }
+    });
+  </script>
+</body>
+</html>
